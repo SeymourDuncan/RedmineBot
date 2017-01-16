@@ -1,73 +1,81 @@
 import config
 import telebot
-from telebot import types
+from telebot import types as teletypes
+from types import Command, UserStory
 
 bot = telebot.TeleBot(config.tebot_token)
 
-# commands =\
-#     {'Отчеты': {
-#         'Протокол тестирования':{
-#             'Ngt-Smart 4.1.9':{},
-#             'Ngt-Smart 4.2.0':{}
-#         },
-#         'What''s new':{
-#             'Ngt-Smart 4.1.9':{},
-#             'Ngt-Smart 4.2.0':{}
-#         }
-#     },
-#     'Справка' : {}
-#     }
+commands = []
+def BuildCommands():
+    report_cmd = Command('Отчеты')
 
-commands =\
-    [
-        ('Отчеты', [
-            ('Протокол тестирования',[
-                ('Ngt-Smart 4.1.9', []),
-                ('Ngt-Smart 4.2.0', [])
-            ]),
-            ('What''s new', [
-                ('Ngt-Smart 4.1.9', []),
-                ('Ngt-Smart 4.2.0', [])
-            ])
-        ]),
-        ('Справка', [])
-    ]
+    protocoltest_cmd = Command('Протокол тестирования')
+    protocoltest_cmd.addCommand(Command('Ngt-Smart 4.1.9'))
+    protocoltest_cmd.addCommand(Command('Ngt-Smart 4.2.0'))
 
-class UserStory():
-    def __init__(self, chat_id):
-        self.chat_id = 0
-        self.indices = []
+    whatsnew_cmd = Command('What''s new')
+    whatsnew_cmd.addCommand(Command('Ngt-Smart 4.1.9'))
+    whatsnew_cmd.addCommand(Command('Ngt-Smart 4.2.0'))
+
+    report_cmd.addCommand(protocoltest_cmd)
+    report_cmd.addCommand(whatsnew_cmd)
+
+    help_cmd = Command('Справка')
+
+    commands.append(report_cmd)
+    commands.append(help_cmd)
+
 
 # список активных диалогов
 user_stories = []
 
 def MakeKeyBoard(lst = []):
-    markup = types.ReplyKeyboardMarkup()
-    l = []
+    markup = teletypes.ReplyKeyboardMarkup()
+    l = None
     if not lst:
-        lst = commands
-    for k in lst:
-        markup.row(k[0])
+        lst = list(c.name for c in commands)
+    for k in l:
+        markup.row(k)
+
+def findCommandById(cmdlist, id):
+    for cmd in cmdlist:
+        if cmd.id == id:
+            return cmd
+        elif cmd.hasCommands:
+            res = findCommandById(cmd.getCommands, id)
+            if res:
+                return res
 
 def ProcessMessage(chat_id, msg):
     # ищем юзерстори
-    ustories = next(a for a in user_stories if a.chat_id == chat_id)
+    ustory = next(a for a in user_stories if a.chat_id == chat_id)
 
+    # вызываемая команда
+    cmd = None
     # не нашли
-    if ustories == None:
-        ad = UserStory(chat_id)
-        # idx_tpl - (индекс выбранной команды, список следующих команд в виде таплов)
-        idx_tpl = next(((i, c[1]) for i, c in enumerate(commands) if c[0] == msg), None)
-        if idx_tpl == None:
+    if ustory == None:
+        cmd = next((c for c in commands if c.name == msg), None)
+        if not cmd:
             return None
-        ad.indices.append(idx_tpl[0])
-        return idx_tpl[1]
+        ustory = UserStory(chat_id)
+        user_stories.append(ustory)
+    else:
+        # узнаем какую предыдущую команду запускал пользователь
+        last_cmd = findCommandById(commands, ustory.indices[-1])
+        # теоретически не должно быть
+        if last_cmd or not last_cmd.hasCommands:
+            return None
+        cmd = next((c for c in last_cmd.getCommands if c.name == msg), None)
 
-    # нашли
-    for story in ustories:
+    # итак, нашли вызванную команду
+    # добавяем в юзерстори
+    ustory.indices.append(cmd.id)
+    # решаем что делать с вызванной командой
+    if cmd.hasCommands:
+        return cmd.getCommandsNames
 
+    return cmd.execute;
 
-# начало работы
 @bot.message_handler(commands=['start'])
 def handle_start_help(message):
     bot.send_message(message.chat.id, "Выберите одну из команд", reply_markup=MakeKeyBoard())
