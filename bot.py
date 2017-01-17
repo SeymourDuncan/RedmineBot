@@ -1,25 +1,16 @@
 import config
 import telebot
 from telebot import types
-from mytypes import Command, UserStory
+from mytypes import Command, UserStory, DocumentFile
 from consts import Messages
+from redmineWrapper import RedmineWrapper
 
-bot = telebot.TeleBot(config.tebot_token)
-
-# список активных диалогов
-user_stories = []
-
-def MakeKeyBoard(cmd):
+# создание клавиатуры
+def makeKeyBoard(cmd):
     markup = types.ReplyKeyboardMarkup()
     for k in cmd.CommandsNames:
         markup.row(k)
     return markup
-
-root_cmd = None
-
-# простой поиск по name команды
-def findCommandByName(cmdlist, name):
-    return next((c for c in cmdlist if c.name == name), None)
 
 # поиск в глубину по id
 def findCommandById(cmdlist, id):
@@ -31,80 +22,103 @@ def findCommandById(cmdlist, id):
             if res:
                 return res
 
-def buildCommands():
-    root = Command('Root')
+# простой поиск по name команды
+def findCommandByName(cmdlist, name):
+    return next((c for c in cmdlist if c.name == name), None)
 
-    report_cmd = Command('Отчеты')
+class RedmineBot():
+    def __init__(self):
+        self.bot = telebot.TeleBot(config.tebot_token)
+        # список активных диалогов
+        self.user_stories = []
+        # команда самого вернхего уровня
+        self.root_cmd = None
+        self.redmine = RedmineWrapper()
 
-    protocoltest_cmd = Command('Протокол тестирования')
-    protocoltest_cmd.addCommand(Command('Ngt-Smart 4.1.9'))
-    protocoltest_cmd.addCommand(Command('Ngt-Smart 4.2.0'))
+    def start(self):
+        self.buildCommands()
 
-    whatsnew_cmd = Command('What''s new')
-    whatsnew_cmd.addCommand(Command('Ngt-Smart 4.1.9'))
-    whatsnew_cmd.addCommand(Command('Ngt-Smart 4.2.0'))
+        @self.bot.message_handler(commands=['start'])
+        def handle_start_help(message):
+            self.bot.send_message(message.chat.id, Messages.help_msg.format(message.chat.first_name), reply_markup=makeKeyBoard(self.root_cmd))
 
-    report_cmd.addCommand(protocoltest_cmd)
-    report_cmd.addCommand(whatsnew_cmd)
+        # обработка запросов
+        @self.bot.message_handler(content_types=["text"])
+        def repeat_all_messages(message):
+            res = self.processMessage(message.chat.id, message.text)
+            if type(res) is Command:  # если Команда - вернем новые кнопки
+                self.bot.send_message(message.chat.id, "Выберите одну из команд", reply_markup=makeKeyBoard(res))
+            elif type(res) is str:
+                self.bot.send_message(message.chat.id, res)
+            elif type(res) is DocumentFile:
+                self.bot.send_document(message.chat.id, data= open(res.filename))
+            else:
+                self.bot.send_message(message.chat.id, Messages.bad_commad_msg)
 
-    help_cmd = Command('Справка', lambda: 2**2)
+        self.bot.polling(none_stop=True)
 
-    root.addCommand(report_cmd)
-    root.addCommand(help_cmd)
+    def stop(self):
+        self.bot.stop_polling()
 
-    return root
-# Обработка действия пользователя
-def ProcessMessage(chat_id, msg):
-    # ищем юзерстори
-    ustory = next((a for a in user_stories if a.chat_id == chat_id), None)
-    # вызываемая команда
-    cmd = None
-    # не нашли юзерстори. Создадим
-    if not ustory:
-        ustory = UserStory(chat_id)
-        user_stories.append(ustory)
+    # построение дерева команд
+    def buildCommands(self):
+        self.root_cmd = Command('Root')
+        report_cmd = Command('Отчеты')
 
-    # если пользователь до этого еще ничего не делал
-    if not ustory.indices:
-        # узнаем что он вызвал сейчас
-        cmd = findCommandByName(root_cmd.getCommands(), msg)
-    # если уже что-то делал
-    else:
-        # узнаем какую предыдущую команду запускал пользователь
-        # она нужна чтобы найти вызванную команду
-        last_cmd = findCommandById(root_cmd.getCommands(), ustory.indices[-1])
-        cmd = findCommandByName(last_cmd.getCommands(), msg)
+        protocoltest_cmd = Command('Протокол тестирования')
+        protocoltest_cmd.addCommand(Command('NGT-Smart Версия 4.1.9', self.redmine.getTestProtocol, {'version' : 'NGT-Smart Версия 4.1.9'}))
+        protocoltest_cmd.addCommand(Command('NGT-Smart Версия 4.2.0', self.redmine.getTestProtocol, {'version' : 'NGT-Smart Версия 4.2.0'}))
 
-    # если вызвал не то, что положено, например вручную вбил команду - то ничего не делаем
-    if not cmd:
-        return None
-    # итак, нашли вызванную команду
-    # решаем что делать с вызванной командой
-    if cmd.hasCommands():
-        # добавяем в юзерстори только если есть внутренние команды,
-        # т.к. юзерстори нужна для навигации по командам, а команда, у которой нет подкоманд - не меняет положение юзера в дереве
-        if cmd.id < 0: # специальная команда "Назад"
-            ustory.indices.pop(-1)
+        whatsnew_cmd = Command('What''s new')
+        whatsnew_cmd.addCommand(Command('Ngt-Smart 4.1.9'))
+        whatsnew_cmd.addCommand(Command('Ngt-Smart 4.2.0'))
+
+        report_cmd.addCommand(protocoltest_cmd)
+        report_cmd.addCommand(whatsnew_cmd)
+
+        help_cmd = Command('Справка', lambda: Messages.help_msg)
+
+        self.root_cmd.addCommand(report_cmd)
+        self.root_cmd.addCommand(help_cmd)
+
+    # Обработка действия пользователя
+    def processMessage(self, chat_id, msg):
+        # ищем юзерстори
+        ustory = next((a for a in self.user_stories if a.chat_id == chat_id), None)
+        # вызываемая команда
+        cmd = None
+        # не нашли юзерстори. Создадим
+        if not ustory:
+            ustory = UserStory(chat_id)
+            self.user_stories.append(ustory)
+
+        # если пользователь до этого еще ничего не делал
+        if not ustory.indices:
+            # узнаем что он вызвал сейчас
+            cmd = findCommandByName(self.root_cmd.getCommands(), msg)
+        # если уже что-то делал
         else:
-            ustory.indices.append(cmd.id)
-        return cmd
+            # узнаем какую предыдущую команду запускал пользователь
+            # она нужна чтобы найти вызванную команду
+            last_cmd = findCommandById(self.root_cmd.getCommands(), ustory.indices[-1])
+            cmd = findCommandByName(last_cmd.getCommands(), msg)
 
-    # выполняем
-    return cmd.execute()
+        # если вызвал не то, что положено, например вручную вбил команду - то ничего не делаем
+        if not cmd:
+            return None
+        # итак, нашли вызванную команду
+        # решаем что делать с вызванной командой
+        if cmd.hasCommands():
+            # добавяем в юзерстори только если есть внутренние команды,
+            # т.к. юзерстори нужна для навигации по командам, а команда, у которой нет подкоманд - не меняет положение юзера в дереве
+            if cmd.id < 0: # специальная команда "Назад"
+                ustory.indices.pop(-1)
+            else:
+                ustory.indices.append(cmd.id)
+            return cmd
+        # выполняем
+        return cmd.execute()
 
-@bot.message_handler(commands=['start'])
-def handle_start_help(message):
-    bot.send_message(message.chat.id, Messages.help_msg.format(message.chat.first_name))
 
-# обработка запросов
-@bot.message_handler(content_types=["text"])
-def repeat_all_messages(message):
-    res = ProcessMessage(message.chat.id, message.text)
-    if type(res) is Command: # если Команда - вернем новые кнопки
-        bot.send_message(message.chat.id, "Выберите одну из команд", reply_markup=MakeKeyBoard(res))
-    else:
-        bot.send_message(message.chat.id, Messages.bad_commad_msg)
 
-if __name__ == '__main__':
-    root_cmd = buildCommands()
-    bot.polling(none_stop=True)
+
