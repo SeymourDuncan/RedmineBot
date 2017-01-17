@@ -1,5 +1,7 @@
 from docx import Document
-from docx.shared import Cm, Inches, Pt, Emu
+from docx.shared import Cm, Pt
+from consts import Reports
+from mytypes import DocumentFile
 
 head_names = ['№ п/п', 'Объект тестирования', 'Сценарий выполнения', 'Ожидаемый результат', 'Инициатор', 'Итог тестирования']
 # cm
@@ -48,11 +50,9 @@ def BuildDocx(data):
             FillRowData(row, iss)
         idx+=1
 
-        # Че не работает то ??? Повесил width  в итоге на cell-ы, а не на column-ы(
-        # for i, col in enumerate(table.columns):
-        #     col.width = Cm(column_width[i]).emu
+    document.save(Reports.tp_filen)
+    return DocumentFile(Reports.tp_filen)
 
-    document.save('Протокол тестирования.docx')
 
 # BuildDocx(data)
 

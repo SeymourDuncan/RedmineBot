@@ -1,12 +1,14 @@
 # Command class
 class Command():
     global_id = 0
-    def __init__(self, name, action = None):
+    def __init__(self, name, action = None, args = {}):
         self.name = name
         self.commands = []
         Command.global_id += 1
         self.id = Command.global_id
+
         self.action = action
+        self.args = args
 
     # Add child command to this command
     def addCommand(self, command):
@@ -36,7 +38,7 @@ class Command():
     def execute(self):
         if not self.action:
             return False
-        return self.action()
+        return self.action(**self.args)
 
     #
     def makeBackCmd(self, parentCmd):
@@ -45,9 +47,12 @@ class Command():
         backCommand.commands = parentCmd.commands
         self.commands.append(backCommand)
 
-
 # User story class
 class UserStory():
     def __init__(self, chat_id):
         self.chat_id = chat_id
         self.indices = []
+
+class DocumentFile():
+    def __init__(self, filename):
+        self.filename = filename
