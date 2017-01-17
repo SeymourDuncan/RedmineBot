@@ -23,6 +23,6 @@ class RedmineConsts():
 
 class Reports():
     # имя файла протокола тестирования
-    tp_filen = 'Протокол тестирования.docx'
+    tp_filen = 'test_protocol.docx'
 
 

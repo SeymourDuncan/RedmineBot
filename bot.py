@@ -2,7 +2,7 @@ import config
 import telebot
 from telebot import types
 from mytypes import Command, UserStory, DocumentFile
-from consts import Messages
+from consts import Messages, Reports
 from redmineWrapper import RedmineWrapper
 
 # создание клавиатуры
@@ -51,7 +51,8 @@ class RedmineBot():
             elif type(res) is str:
                 self.bot.send_message(message.chat.id, res)
             elif type(res) is DocumentFile:
-                self.bot.send_document(message.chat.id, data= open(res.filename))
+                self.bot.send_chat_action(message.chat.id, 'upload_document')
+                self.bot.send_document(message.chat.id, data=open(Reports.tp_filen, mode="rb"), caption='Протокол тестирования {}.docx'.format(message.text))
             else:
                 self.bot.send_message(message.chat.id, Messages.bad_commad_msg)
 
@@ -76,10 +77,10 @@ class RedmineBot():
         report_cmd.addCommand(protocoltest_cmd)
         report_cmd.addCommand(whatsnew_cmd)
 
-        help_cmd = Command('Справка', lambda: Messages.help_msg)
+        # help_cmd = Command('Справка', lambda: Messages.help_msg)
 
         self.root_cmd.addCommand(report_cmd)
-        self.root_cmd.addCommand(help_cmd)
+        # self.root_cmd.addCommand(help_cmd)
 
     # Обработка действия пользователя
     def processMessage(self, chat_id, msg):
