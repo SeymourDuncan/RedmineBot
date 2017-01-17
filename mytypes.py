@@ -4,12 +4,15 @@ class Command():
     def __init__(self, name, action = None):
         self.name = name
         self.commands = []
+        Command.global_id += 1
         self.id = Command.global_id
         self.action = action
-        Command.global_id+=1
 
     # Add child command to this command
     def addCommand(self, command):
+        # если добавляемая команда что-то выполняет, то у нее нет back-команды
+        if not command.action:
+            command.makeBackCmd(self)
         self.commands.append(command)
 
     # Get all child commands
@@ -17,8 +20,9 @@ class Command():
         return self.commands
 
     # Get string list by commands names
-    def getCommandsNames(self):
-        return list(c.name for c in self.commands)
+    @property
+    def CommandsNames(self):
+        return list(c.name for c in self.getCommands())
 
     # Get child command by id
     def getCommand(self, idx):
@@ -32,11 +36,18 @@ class Command():
     def execute(self):
         if not self.action:
             return False
-
         return self.action()
+
+    #
+    def makeBackCmd(self, parentCmd):
+        backCommand = Command('Назад')
+        backCommand.id = -1
+        backCommand.commands = parentCmd.commands
+        self.commands.append(backCommand)
+
 
 # User story class
 class UserStory():
     def __init__(self, chat_id):
-        self.chat_id = 0
+        self.chat_id = chat_id
         self.indices = []

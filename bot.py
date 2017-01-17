@@ -1,12 +1,39 @@
 import config
 import telebot
-from telebot import types as teletypes
-from types import Command, UserStory
+from telebot import types
+from mytypes import Command, UserStory
+from consts import Messages
 
 bot = telebot.TeleBot(config.tebot_token)
 
-commands = []
-def BuildCommands():
+# список активных диалогов
+user_stories = []
+
+def MakeKeyBoard(cmd):
+    markup = types.ReplyKeyboardMarkup()
+    for k in cmd.CommandsNames:
+        markup.row(k)
+    return markup
+
+root_cmd = None
+
+# простой поиск по name команды
+def findCommandByName(cmdlist, name):
+    return next((c for c in cmdlist if c.name == name), None)
+
+# поиск в глубину по id
+def findCommandById(cmdlist, id):
+    for cmd in cmdlist:
+        if cmd.id == id:
+            return cmd
+        elif cmd.hasCommands() and cmd.id > 0: # нельзя заходить в back-команду, т.к. зациклимся
+            res = findCommandById(cmd.getCommands(), id)
+            if res:
+                return res
+
+def buildCommands():
+    root = Command('Root')
+
     report_cmd = Command('Отчеты')
 
     protocoltest_cmd = Command('Протокол тестирования')
@@ -20,76 +47,64 @@ def BuildCommands():
     report_cmd.addCommand(protocoltest_cmd)
     report_cmd.addCommand(whatsnew_cmd)
 
-    help_cmd = Command('Справка')
+    help_cmd = Command('Справка', lambda: 2**2)
 
-    commands.append(report_cmd)
-    commands.append(help_cmd)
+    root.addCommand(report_cmd)
+    root.addCommand(help_cmd)
 
-
-# список активных диалогов
-user_stories = []
-
-def MakeKeyBoard(lst = []):
-    markup = teletypes.ReplyKeyboardMarkup()
-    l = None
-    if not lst:
-        lst = list(c.name for c in commands)
-    for k in l:
-        markup.row(k)
-
-def findCommandById(cmdlist, id):
-    for cmd in cmdlist:
-        if cmd.id == id:
-            return cmd
-        elif cmd.hasCommands:
-            res = findCommandById(cmd.getCommands, id)
-            if res:
-                return res
-
+    return root
+# Обработка действия пользователя
 def ProcessMessage(chat_id, msg):
     # ищем юзерстори
-    ustory = next(a for a in user_stories if a.chat_id == chat_id)
-
+    ustory = next((a for a in user_stories if a.chat_id == chat_id), None)
     # вызываемая команда
     cmd = None
-    # не нашли
-    if ustory == None:
-        cmd = next((c for c in commands if c.name == msg), None)
-        if not cmd:
-            return None
+    # не нашли юзерстори. Создадим
+    if not ustory:
         ustory = UserStory(chat_id)
         user_stories.append(ustory)
+
+    # если пользователь до этого еще ничего не делал
+    if not ustory.indices:
+        # узнаем что он вызвал сейчас
+        cmd = findCommandByName(root_cmd.getCommands(), msg)
+    # если уже что-то делал
     else:
         # узнаем какую предыдущую команду запускал пользователь
-        last_cmd = findCommandById(commands, ustory.indices[-1])
-        # теоретически не должно быть
-        if last_cmd or not last_cmd.hasCommands:
-            return None
-        cmd = next((c for c in last_cmd.getCommands if c.name == msg), None)
+        # она нужна чтобы найти вызванную команду
+        last_cmd = findCommandById(root_cmd.getCommands(), ustory.indices[-1])
+        cmd = findCommandByName(last_cmd.getCommands(), msg)
 
+    # если вызвал не то, что положено, например вручную вбил команду - то ничего не делаем
+    if not cmd:
+        return None
     # итак, нашли вызванную команду
-    # добавяем в юзерстори
-    ustory.indices.append(cmd.id)
     # решаем что делать с вызванной командой
-    if cmd.hasCommands:
-        return cmd.getCommandsNames
+    if cmd.hasCommands():
+        # добавяем в юзерстори только если есть внутренние команды,
+        # т.к. юзерстори нужна для навигации по командам, а команда, у которой нет подкоманд - не меняет положение юзера в дереве
+        if cmd.id < 0: # специальная команда "Назад"
+            ustory.indices.pop(-1)
+        else:
+            ustory.indices.append(cmd.id)
+        return cmd
 
-    return cmd.execute;
+    # выполняем
+    return cmd.execute()
 
 @bot.message_handler(commands=['start'])
 def handle_start_help(message):
-    bot.send_message(message.chat.id, "Выберите одну из команд", reply_markup=MakeKeyBoard())
+    bot.send_message(message.chat.id, Messages.help_msg.format(message.chat.first_name))
 
 # обработка запросов
 @bot.message_handler(content_types=["text"])
 def repeat_all_messages(message):
     res = ProcessMessage(message.chat.id, message.text)
-    if type() is list:
+    if type(res) is Command: # если Команда - вернем новые кнопки
         bot.send_message(message.chat.id, "Выберите одну из команд", reply_markup=MakeKeyBoard(res))
     else:
-        return
-
-    bot.send_message(message.chat.id, message.text)
+        bot.send_message(message.chat.id, Messages.bad_commad_msg)
 
 if __name__ == '__main__':
-     bot.polling(none_stop=True)
+    root_cmd = buildCommands()
+    bot.polling(none_stop=True)
