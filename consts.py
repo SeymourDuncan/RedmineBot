@@ -7,7 +7,6 @@ class Messages():
                'Для вызова команд используй меню.'
 
 class RedmineConsts():
-    # version_name = 'NGT-Smart Версия 4.1.9'
     # Состояние Закрыта
     closed_state_id = 5
 
@@ -21,8 +20,23 @@ class RedmineConsts():
     # other
     my_id = 572
 
+    prev_version = 'NGT-Smart Версия 4.2.0'
+    current_version = 'NGT-Smart Версия 4.2.1'
+    next_version = 'NGT-Smart Версия 4.2.2'
+
 class Reports():
     # имя файла протокола тестирования
     tp_filen = 'test_protocol.docx'
+
+    header_tmp = 'ТЕСТ-ПЛАН. ОБНОВЛЕНИЕ {}'
+
+class Parsing():
+    user_steps_begin = '{{steps_for_user_begin}}'
+    user_steps_end = '{{steps_for_user_end}}'
+    user_result_begin = '{{result_for_user_begin}}'
+    user_result_end = '{{result_for_user_end}}'
+    collapse_begin = r'{{collapse\(.*?\)\r\n'
+    #(Показать..., Скрыть)
+    collapse_end = r'}}(\r\n)?'
 
 

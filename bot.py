@@ -2,7 +2,7 @@ import config
 import telebot
 from telebot import types
 from mytypes import Command, UserStory, DocumentFile
-from consts import Messages, Reports
+from consts import Messages, Reports, RedmineConsts
 from redmineWrapper import RedmineWrapper
 
 # создание клавиатуры
@@ -67,12 +67,14 @@ class RedmineBot():
         report_cmd = Command('Отчеты')
 
         protocoltest_cmd = Command('Протокол тестирования')
-        protocoltest_cmd.addCommand(Command('NGT-Smart Версия 4.1.9', self.redmine.getTestProtocol, {'version' : 'NGT-Smart Версия 4.1.9'}))
-        protocoltest_cmd.addCommand(Command('NGT-Smart Версия 4.2.0', self.redmine.getTestProtocol, {'version' : 'NGT-Smart Версия 4.2.0'}))
+        protocoltest_cmd.addCommand(Command(RedmineConsts.prev_version, self.redmine.getTestProtocol, {'version' : RedmineConsts.prev_version}))
+        protocoltest_cmd.addCommand(Command(RedmineConsts.current_version, self.redmine.getTestProtocol, {'version' : RedmineConsts.current_version}))
+        protocoltest_cmd.addCommand(Command(RedmineConsts.next_version, self.redmine.getTestProtocol, {'version': RedmineConsts.next_version}))
 
         whatsnew_cmd = Command('What''s new')
-        whatsnew_cmd.addCommand(Command('Ngt-Smart 4.1.9'))
-        whatsnew_cmd.addCommand(Command('Ngt-Smart 4.2.0'))
+        whatsnew_cmd.addCommand(Command(RedmineConsts.prev_version))
+        whatsnew_cmd.addCommand(Command(RedmineConsts.current_version))
+        whatsnew_cmd.addCommand(Command(RedmineConsts.next_version))
 
         report_cmd.addCommand(protocoltest_cmd)
         report_cmd.addCommand(whatsnew_cmd)

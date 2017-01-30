@@ -17,12 +17,12 @@ def FillRowData(row, data, isHead = False):
         if isHead:
             run.bold = True
 
-def BuildDocx(data):
+def BuildDocx(data, version = ''):
     document = Document('template.docx')
 
     # заголовок
     paragraph = document.add_paragraph()
-    run = paragraph.add_run('ТЕСТ-ПЛАН. ОБНОВЛЕНИЕ 4.1.9')
+    run = paragraph.add_run(Reports.header_tmp.format(version))
     run.style = 'Заголовок 1 Знак'
     paragraph.paragraph_format.first_line_indent = Cm(3.0)
 
@@ -36,6 +36,7 @@ def BuildDocx(data):
 
         # строим таблицу
         table = document.add_table(rows=len(issues) + 1, cols=6)
+        table.autofit = False
 
         table.style = 'Table Grid'
         row_id = 0
