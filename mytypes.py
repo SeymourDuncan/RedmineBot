@@ -1,14 +1,14 @@
+from enum import Enum
+
 # Command class
 class Command():
     global_id = 0
-    def __init__(self, name, action = None, args = {}):
+    def __init__(self, name, action = None):
         self.name = name
         self.commands = []
         Command.global_id += 1
         self.id = Command.global_id
-
         self.action = action
-        self.args = args
 
     # Add child command to this command
     def addCommand(self, command):
@@ -35,10 +35,10 @@ class Command():
         return bool(self.commands)
 
     # Execute command. Returns False if action was not set
-    def execute(self):
+    def getAction(self):
         if not self.action:
             return False
-        return self.action(**self.args)
+        return self.action
 
     #
     def makeBackCmd(self, parentCmd):
@@ -46,6 +46,22 @@ class Command():
         backCommand.id = -1
         backCommand.commands = parentCmd.commands
         self.commands.append(backCommand)
+
+# Action class
+class Action:
+    def __init__(self, action, args):
+        self.action = action
+        self.args = args
+
+    def execute(self):
+        return self.action(**self.args)
+
+# Send action class
+class SendFileAction(Action):
+    def __init__(self, action, args, filename):
+        super(SendFileAction, self).__init__(action, args)
+        self.filename = filename
+
 
 # User story class
 class UserStory():

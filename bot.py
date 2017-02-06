@@ -1,8 +1,8 @@
 import config
 import telebot
 from telebot import types
-from mytypes import Command, UserStory, DocumentFile
-from consts import Messages, Reports, RedmineConsts
+from mytypes import Command, UserStory, Action, SendFileAction
+from consts import Messages, RedmineConsts, Reports
 from redmineWrapper import RedmineWrapper
 
 # создание клавиатуры
@@ -47,12 +47,15 @@ class RedmineBot():
         def repeat_all_messages(message):
             res = self.processMessage(message.chat.id, message.text)
             if type(res) is Command:  # если Команда - вернем новые кнопки
-                self.bot.send_message(message.chat.id, "Выберите одну из команд", reply_markup=makeKeyBoard(res))
-            elif type(res) is str:
+                self.bot.send_message(message.chat.id, Messages.select_command, reply_markup=makeKeyBoard(res))
+            elif type(res) is str: # Если строка то просто выводим как сообщение
                 self.bot.send_message(message.chat.id, res)
-            elif type(res) is DocumentFile:
+            elif type(res) is SendFileAction: # Может что-то выполнять.
+                # показываем что занимается отправкой
+                self.bot.send_message(message.chat.id, Messages.prepare_file.format(res.filename))
+                res.execute()
                 self.bot.send_chat_action(message.chat.id, 'upload_document')
-                self.bot.send_document(message.chat.id, data=open(Reports.tp_filen, mode="rb"), caption='Протокол тестирования {}.docx'.format(message.text))
+                self.bot.send_document(message.chat.id, data=open(Reports.tp_filen, mode="rb"), caption=res.filename)
             else:
                 self.bot.send_message(message.chat.id, Messages.bad_commad_msg)
 
@@ -67,11 +70,16 @@ class RedmineBot():
         report_cmd = Command('Отчеты')
 
         protocoltest_cmd = Command('Протокол тестирования')
-        protocoltest_cmd.addCommand(Command(RedmineConsts.prev_version, self.redmine.getTestProtocol, {'version' : RedmineConsts.prev_version}))
-        protocoltest_cmd.addCommand(Command(RedmineConsts.current_version, self.redmine.getTestProtocol, {'version' : RedmineConsts.current_version}))
-        protocoltest_cmd.addCommand(Command(RedmineConsts.next_version, self.redmine.getTestProtocol, {'version': RedmineConsts.next_version}))
 
-        whatsnew_cmd = Command('What''s new')
+        fn_tmp = 'Протокол тестирования {}.docx'
+        protocoltest_cmd.addCommand(Command(RedmineConsts.prev_version, SendFileAction(self.redmine.getTestProtocol,
+            {'version' : RedmineConsts.prev_version}, fn_tmp.format(RedmineConsts.prev_version))))
+        protocoltest_cmd.addCommand(Command(RedmineConsts.current_version, SendFileAction(self.redmine.getTestProtocol,
+            {'version' : RedmineConsts.current_version}, fn_tmp.format(RedmineConsts.current_version))))
+        protocoltest_cmd.addCommand(Command(RedmineConsts.next_version, SendFileAction(self.redmine.getTestProtocol,
+            {'version': RedmineConsts.next_version}, fn_tmp.format(RedmineConsts.next_version))))
+
+        whatsnew_cmd = Command('What\'s new')
         whatsnew_cmd.addCommand(Command(RedmineConsts.prev_version))
         whatsnew_cmd.addCommand(Command(RedmineConsts.current_version))
         whatsnew_cmd.addCommand(Command(RedmineConsts.next_version))
@@ -79,10 +87,7 @@ class RedmineBot():
         report_cmd.addCommand(protocoltest_cmd)
         report_cmd.addCommand(whatsnew_cmd)
 
-        # help_cmd = Command('Справка', lambda: Messages.help_msg)
-
         self.root_cmd.addCommand(report_cmd)
-        # self.root_cmd.addCommand(help_cmd)
 
     # Обработка действия пользователя
     def processMessage(self, chat_id, msg):
@@ -120,7 +125,7 @@ class RedmineBot():
                 ustory.indices.append(cmd.id)
             return cmd
         # выполняем
-        return cmd.execute()
+        return cmd.getAction()
 
 
 
