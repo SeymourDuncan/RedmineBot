@@ -3,19 +3,47 @@ from docx.shared import Cm, Pt
 from consts import Reports
 from mytypes import DocumentFile
 
+import re
+
 head_names = ['№ п/п', 'Объект тестирования', 'Сценарий выполнения', 'Ожидаемый результат', 'Инициатор', 'Итог тестирования']
 # cm
 column_width = [1, 5, 7, 6, 3, 5]
 
-def FillRowData(row, data, isHead = False):
-    for i, text in enumerate(data):
-        run = row[i].add_paragraph().add_run(text)
+
+# Заполнение данными строку таблицы
+# row - строка
+# data - list c данными
+# isHead - признак заголовка таблицы. Влияет на формат
+def fillRowData(row, data, isHead = False):
+
+    def styleRun(run):
         font = run.font
         font.name = 'Calibri'
         font.size = Pt(10)
-        row[i].width = Cm(column_width[i]).emu
         if isHead:
             run.bold = True
+
+    for i, text in enumerate(data):
+        char_idx = 0
+        pgph = row[i].add_paragraph()
+        # ищем картинки
+        matches = re.finditer((r"!!") + '(?P<content>[^\>]*?)' + (r"!!"), text)
+        # ходим по картинкам
+        for m in matches:
+            # добавляем текст до картинки
+            piece = text[char_idx: m.start()]
+            if piece:
+                run = pgph.add_run(piece)
+                styleRun(run)
+            # добавляем картинку
+            pgph.add_run().add_picture(m.group('content'), width=Cm(column_width[i] - 0.5))
+            char_idx = m.end()
+
+        # добавляем то что осталось после картинок
+        piece = text[char_idx:]
+        run = pgph.add_run(piece)
+        styleRun(run)
+        row[i].width = Cm(column_width[i]).emu
 
 def BuildDocx(data, version = ''):
     document = Document('template.docx')
@@ -42,13 +70,13 @@ def BuildDocx(data, version = ''):
         row_id = 0
         row = table.rows[row_id].cells
         # заголовок
-        FillRowData(row, head_names, True)
+        fillRowData(row, head_names, True)
         # данные
         for iss in issues:
             row_id += 1
             row = table.rows[row_id].cells
             iss.insert(0, '{}.'.format(row_id))
-            FillRowData(row, iss)
+            fillRowData(row, iss)
         idx+=1
 
     document.save(Reports.tp_filen)

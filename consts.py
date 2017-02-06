@@ -1,3 +1,5 @@
+from enum import Enum
+
 class Messages():
     #
     bad_commad_msg = 'Неверная команда'
@@ -35,8 +37,15 @@ class Parsing():
     user_steps_end = '{{steps_for_user_end}}'
     user_result_begin = '{{result_for_user_begin}}'
     user_result_end = '{{result_for_user_end}}'
-    collapse_begin = r'{{collapse\(.*?\)\r\n'
+    collapse_begin = r'{{collapse\(.*?\)'
     #(Показать..., Скрыть)
-    collapse_end = r'}}(\r\n)?'
+    collapse_end = r'}}?'
+
+# тип парсинга
+class ParseType(Enum):
+     # заменить совпавшее значение
+     REPLACE = 1
+     # вернуть совпавшее значение
+     RETURN = 2
 
 
