@@ -21,7 +21,7 @@ class RedmineWrapper():
     # Проект задан по умолчанию - "Базовый функицонал"
     def getTestProtocol(self, **kvargs):
         # зачищаем предыдущие вложения
-        if not os.path.exists(RedmineWrapper.img_path):
+        if os.path.exists(RedmineWrapper.img_path):
             shutil.rmtree(RedmineWrapper.img_path)
 
         proj = self.redmine.project.get(RedmineConsts.base_smart_id)

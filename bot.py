@@ -28,7 +28,8 @@ def findCommandByName(cmdlist, name):
 
 class RedmineBot():
     def __init__(self):
-        self.bot = telebot.TeleBot(config.tebot_token)
+        # пока что однопоточный режим
+        self.bot = telebot.TeleBot(config.tebot_token, threaded=False)
         # список активных диалогов
         self.user_stories = []
         # команда самого вернхего уровня
