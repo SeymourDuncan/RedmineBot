@@ -19,6 +19,7 @@ class RedmineConsts():
     # Custom field id:
     whatsnew_text_id = 24
     initiator_id = 6
+    customer_id = 8 # 68
 
     # Project identifiers
     base_smart_id = 'base_smart'
@@ -26,9 +27,8 @@ class RedmineConsts():
     # other
     my_id = 572
 
-    prev_version = 'NGT-Smart Версия 4.2.0'
-    current_version = 'NGT-Smart Версия 4.2.1'
-    next_version = 'NGT-Smart Версия 4.2.2'
+    versions = ['NGT-Smart Версия 4.2.0', 'NGT-Smart Версия 4.2.1', 'NGT-Smart Версия 4.2.2']
+    customers = ['Для всех', 'БН', 'УНТЦ', 'РуссНефть-Саратов']
 
 class Reports():
     # имя файла протокола тестирования

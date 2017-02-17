@@ -6,7 +6,6 @@ from consts import RedmineConsts, Parsing, ParseType
 import shutil
 import re
 
-
 class RedmineWrapper():
     # папка с вложенияеми
     img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'images')
@@ -29,6 +28,11 @@ class RedmineWrapper():
         if not type(ver_arg) is str:
             return None
 
+        customer = kvargs['customer']
+        if not type(customer) is str:
+            return None
+
+
         version = next(v for v in proj.versions if v.name == ver_arg)
         issues = self.redmine.issue.filter(project_id=RedmineConsts.base_smart_id, status_id=RedmineConsts.closed_state_id
                                            #, assigned_to_id=RedmineConsts.my_id#
@@ -47,19 +51,30 @@ class RedmineWrapper():
             if not getattr(iss, 'category', None):
                 continue
             ctg = iss.category.name
+
+            # если не "Для всех" или не выбранный заказчик - пропускаем
+            if (customer != RedmineConsts.customers[0]) and (customer != RedmineWrapper.getCustomValue(iss, RedmineConsts.customer_id)):
+                continue
+
+            # объект тестирования (what's new)
+            testObj = (RedmineWrapper.getCustomValue(iss, RedmineConsts.whatsnew_text_id)).strip()
+            # добавляем только с what's new
+            if testObj == "":
+                continue
+            # добавляем номер тикета в конец
+            testObj = '{}\n{}'.format(testObj, iss.id)
+
+            # шаги воспроизведения
+            steps = self.parseTextBetween(iss.description, Parsing.user_steps_begin, Parsing.user_steps_end).strip()
+            # результат воспроизведения
+            result = self.parseTextBetween(iss.description, Parsing.user_result_begin, Parsing.user_result_end).strip()
+            # инициатор задачи
+            initiator = RedmineWrapper.getCustomValue(iss, RedmineConsts.initiator_id).strip()
+
             # категория еще не встречалась - создаем пустой список
             if not ctg in data.keys():
                 data[ctg] = []
             lst = data[ctg]
-
-            # объект тестирования
-            testObj = '{}\n{}'.format(RedmineWrapper.getCustomValue(iss, RedmineConsts.whatsnew_text_id), iss.id)
-            # шаги воспроизведения
-            steps = self.parseTextBetween(iss.description, Parsing.user_steps_begin, Parsing.user_steps_end)
-            # результат воспроизведения
-            result = self.parseTextBetween(iss.description, Parsing.user_result_begin, Parsing.user_result_end)
-            # инициатор задачи
-            initiator = RedmineWrapper.getCustomValue(iss, RedmineConsts.initiator_id)
             lst.append([testObj, steps, result, initiator])
 
         # получаем только цифры от версии
@@ -162,8 +177,10 @@ def trimExtraEscapes(str):
 
 if __name__ == '__main__':
     rdm = RedmineWrapper()
-    iss = rdm.getIssue('48051')
-    rdm.currIss = iss
-    steps = rdm.parseTextBetween(iss.description, Parsing.user_steps_begin, Parsing.user_steps_end)
-    result = rdm.parseTextBetween(iss.description, Parsing.user_result_begin, Parsing.user_result_end)
+    #
+    iss = rdm.getIssue('48469')
+    cf = iss.custom_fields.get(62, None)
+    # rdm.currIss = iss
+    # steps = rdm.parseTextBetween(iss.description, Parsing.user_steps_begin, Parsing.user_steps_end)
+    # result = rdm.parseTextBetween(iss.description, Parsing.user_result_begin, Parsing.user_result_end)
     pass

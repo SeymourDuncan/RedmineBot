@@ -73,18 +73,17 @@ class RedmineBot():
         protocoltest_cmd = Command('Протокол тестирования')
 
         fn_tmp = 'Протокол тестирования {}.docx'
-        protocoltest_cmd.addCommand(Command(RedmineConsts.prev_version, SendFileAction(self.redmine.getTestProtocol,
-            {'version' : RedmineConsts.prev_version}, fn_tmp.format(RedmineConsts.prev_version))))
-        protocoltest_cmd.addCommand(Command(RedmineConsts.current_version, SendFileAction(self.redmine.getTestProtocol,
-            {'version' : RedmineConsts.current_version}, fn_tmp.format(RedmineConsts.current_version))))
-        protocoltest_cmd.addCommand(Command(RedmineConsts.next_version, SendFileAction(self.redmine.getTestProtocol,
-            {'version': RedmineConsts.next_version}, fn_tmp.format(RedmineConsts.next_version))))
+
+        for version in RedmineConsts.versions:
+            cmd_ver = Command(version)
+            for customer in RedmineConsts.customers:
+                cmd_cstm = Command(customer, SendFileAction(self.redmine.getTestProtocol,
+                                                           {'version': version, 'customer': customer},
+                                                           fn_tmp.format(version)))
+                cmd_ver.addCommand(cmd_cstm)
+            protocoltest_cmd.addCommand(cmd_ver)
 
         whatsnew_cmd = Command('What\'s new')
-        whatsnew_cmd.addCommand(Command(RedmineConsts.prev_version))
-        whatsnew_cmd.addCommand(Command(RedmineConsts.current_version))
-        whatsnew_cmd.addCommand(Command(RedmineConsts.next_version))
-
         report_cmd.addCommand(protocoltest_cmd)
         report_cmd.addCommand(whatsnew_cmd)
 
