@@ -2,8 +2,11 @@ import config
 import telebot
 from telebot import types
 from mytypes import Command, UserStory, Action, SendFileAction
-from consts import Messages, RedmineConsts, Reports
+from consts import Messages, RedmineConsts, Reports, Paths
 from redmineWrapper import RedmineWrapper
+import logging
+import sys
+import os
 
 # создание клавиатуры
 def makeKeyBoard(cmd):
@@ -35,6 +38,7 @@ class RedmineBot():
         # команда самого вернхего уровня
         self.root_cmd = None
         self.redmine = RedmineWrapper()
+        logging.basicConfig(filename=Paths.log_file, format='%(asctime)s %(message)s', datefmt='%d.%m.%Y %I:%M:%S %p')
 
     def start(self):
         self.buildCommands()
@@ -46,19 +50,25 @@ class RedmineBot():
         # обработка запросов
         @self.bot.message_handler(content_types=["text"])
         def repeat_all_messages(message):
-            res = self.processMessage(message.chat.id, message.text)
-            if type(res) is Command:  # если Команда - вернем новые кнопки
-                self.bot.send_message(message.chat.id, Messages.select_command, reply_markup=makeKeyBoard(res))
-            elif type(res) is str: # Если строка то просто выводим как сообщение
-                self.bot.send_message(message.chat.id, res)
-            elif type(res) is SendFileAction: # Может что-то выполнять.
-                # показываем что занимается отправкой
-                self.bot.send_message(message.chat.id, Messages.prepare_file.format(res.filename))
-                res.execute()
-                self.bot.send_chat_action(message.chat.id, 'upload_document')
-                self.bot.send_document(message.chat.id, data=open(Reports.tp_filen, mode="rb"), caption=res.filename)
-            else:
-                self.bot.send_message(message.chat.id, Messages.bad_commad_msg)
+            try:
+                res = self.processMessage(message.chat.id, message.text)
+                if type(res) is Command:  # если Команда - вернем новые кнопки
+                    logging.error("Command {0}".format(res.name))
+                    self.bot.send_message(message.chat.id, Messages.select_command, reply_markup=makeKeyBoard(res))
+                elif type(res) is str: # Если строка то просто выводим как сообщение
+                    self.bot.send_message(message.chat.id, res)
+                elif type(res) is SendFileAction: # Может что-то выполнять.
+                    # показываем что занимается отправкой
+                    self.bot.send_message(message.chat.id, Messages.prepare_file.format(res.filename))
+                    logging.error("Executing")
+                    res.execute()
+                    self.bot.send_chat_action(message.chat.id, 'upload_document')
+                    logging.error("File path {0}".format(Paths.tp_filen))
+                    self.bot.send_document(message.chat.id, data=open(Paths.tp_filen, mode="rb"), caption=res.filename)
+                else:
+                    self.bot.send_message(message.chat.id, Messages.bad_commad_msg)
+            except:
+                logging.error("{0} {1}".format(sys.exc_info()[0], sys.exc_info()[1]))
 
         self.bot.polling(none_stop=True)
 

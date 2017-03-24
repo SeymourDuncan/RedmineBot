@@ -1,6 +1,6 @@
 from docx import Document
 from docx.shared import Cm, Pt
-from consts import Reports
+from consts import Paths, Reports
 from mytypes import DocumentFile
 
 import re
@@ -46,7 +46,7 @@ def fillRowData(row, data, isHead = False):
         row[i].width = Cm(column_width[i]).emu
 
 def BuildDocx(data, version = ''):
-    document = Document('template.docx')
+    document = Document(Paths.tp_filen)
 
     # заголовок
     paragraph = document.add_paragraph()
@@ -79,8 +79,8 @@ def BuildDocx(data, version = ''):
             fillRowData(row, iss)
         idx+=1
 
-    document.save(Reports.tp_filen)
-    return DocumentFile(Reports.tp_filen)
+    document.save(Paths.tp_filen)
+    return DocumentFile(Paths.tp_filen)
 
 
 # BuildDocx(data)

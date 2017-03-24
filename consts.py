@@ -1,4 +1,11 @@
 from enum import Enum
+import os
+
+class Paths:
+    CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+    # имя файла протокола тестирования
+    tp_filen = os.path.join(CURRENT_DIR, 'test_protocol.docx')
+    log_file = os.path.join(CURRENT_DIR, 'main.log')
 
 class Messages():
     #
@@ -31,9 +38,6 @@ class RedmineConsts():
     customers = ['Для всех']
 
 class Reports():
-    # имя файла протокола тестирования
-    tp_filen = 'test_protocol.docx'
-
     header_tmp = 'ТЕСТ-ПЛАН. ОБНОВЛЕНИЕ {}'
 
 class Parsing():
