@@ -27,8 +27,8 @@ class RedmineConsts():
     # other
     my_id = 572
 
-    versions = ['NGT-Smart Версия 4.2.0', 'NGT-Smart Версия 4.2.1', 'NGT-Smart Версия 4.2.2']
-    customers = ['Для всех', 'БН', 'УНТЦ', 'РуссНефть-Саратов']
+    versions = ['NGT-Smart Версия 4.2.0', 'NGT-Smart Версия 4.2.1', 'NGT-Smart Версия 4.2.2', 'NGT-Smart Версия 4.2.3', 'NGT-Smart Версия 4.2.4']
+    customers = ['Для всех']
 
 class Reports():
     # имя файла протокола тестирования

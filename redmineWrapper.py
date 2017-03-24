@@ -53,8 +53,8 @@ class RedmineWrapper():
             ctg = iss.category.name
 
             # если не "Для всех" или не выбранный заказчик - пропускаем
-            if (customer != RedmineConsts.customers[0]) and (customer != RedmineWrapper.getCustomValue(iss, RedmineConsts.customer_id)):
-                continue
+            # if (customer != RedmineConsts.customers[0]) and (customer != RedmineWrapper.getCustomValue(iss, RedmineConsts.customer_id)):
+            #     continue
 
             # объект тестирования (what's new)
             testObj = (RedmineWrapper.getCustomValue(iss, RedmineConsts.whatsnew_text_id)).strip()
@@ -164,6 +164,7 @@ class RedmineWrapper():
 
 
 def trimExtraEscapes(str):
+    # обрезаем переносы в начале и в конце
     extraEsc = r'\r\n'
     match = re.search(extraEsc + '+' + '(?P<content>[^\>]*)' + extraEsc + '+', str)
     if not match:
@@ -171,9 +172,9 @@ def trimExtraEscapes(str):
     res = match.group('content')
     if not res:
         return ''
+    # заменяем /r/n на /n
     res = re.sub(r'\r\n', lambda m: '\n', res)
     return res
-
 
 if __name__ == '__main__':
     rdm = RedmineWrapper()
