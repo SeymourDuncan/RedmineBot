@@ -46,7 +46,7 @@ def fillRowData(row, data, isHead = False):
         row[i].width = Cm(column_width[i]).emu
 
 def BuildDocx(data, version = ''):
-    document = Document(Paths.tp_filen)
+    document = Document(Paths.temp_file)
 
     # заголовок
     paragraph = document.add_paragraph()
@@ -79,8 +79,8 @@ def BuildDocx(data, version = ''):
             fillRowData(row, iss)
         idx+=1
 
-    document.save(Paths.tp_filen)
-    return DocumentFile(Paths.tp_filen)
+    document.save(Paths.test_prot_file)
+    return DocumentFile(Paths.test_prot_file)
 
 
 # BuildDocx(data)

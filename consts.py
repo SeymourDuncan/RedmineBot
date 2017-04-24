@@ -4,7 +4,8 @@ import os
 class Paths:
     CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
     # имя файла протокола тестирования
-    tp_filen = os.path.join(CURRENT_DIR, 'test_protocol.docx')
+    temp_file = os.path.join(CURRENT_DIR, 'template.docx')
+    test_prot_file = os.path.join(CURRENT_DIR, 'test_protocol.docx')
     log_file = os.path.join(CURRENT_DIR, 'main.log')
 
 class Messages():

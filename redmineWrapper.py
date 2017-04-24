@@ -34,14 +34,17 @@ class RedmineWrapper():
 
 
         version = next(v for v in proj.versions if v.name == ver_arg)
-        issues = self.redmine.issue.filter(project_id=RedmineConsts.base_smart_id, status_id=RedmineConsts.closed_state_id
-                                           #, assigned_to_id=RedmineConsts.my_id#
+        issues = self.redmine.issue.filter(
+                                            project_id=RedmineConsts.base_smart_id
+                                           , status_id=RedmineConsts.closed_state_id
+                                           # , limit  = 50
                                            )
+
         # фильтруем нужную версию
         issues = list(i for i in issues if hasattr(i, 'fixed_version') and i.fixed_version.id == version.id)
 
         # тестовый тикет
-        # issues = [self.redmine.issue.get('48051')]
+        # issues = [self.redmine.issue.get('47089')]
 
         # собираем данные. Dict(категория: list(dict с необходимыми данными))
         data = {}

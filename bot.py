@@ -29,6 +29,7 @@ def findCommandById(cmdlist, id):
 def findCommandByName(cmdlist, name):
     return next((c for c in cmdlist if c.name == name), None)
 
+
 class RedmineBot():
     def __init__(self):
         # пока что однопоточный режим
@@ -40,11 +41,19 @@ class RedmineBot():
         self.redmine = RedmineWrapper()
         logging.basicConfig(filename=Paths.log_file, format='%(asctime)s %(message)s', datefmt='%d.%m.%Y %I:%M:%S %p')
 
+    def remove_userstory(self, chat_id):
+        '''Удаление userstory по id chat id'''
+
+        # делаем новый список
+        new_us = [us for us in self.user_stories if us.chat_id != chat_id]
+        self.user_stories = new_us
+
     def start(self):
         self.buildCommands()
 
         @self.bot.message_handler(commands=['start'])
         def handle_start_help(message):
+            self.remove_userstory(message.chat.id)
             self.bot.send_message(message.chat.id, Messages.help_msg.format(message.chat.first_name), reply_markup=makeKeyBoard(self.root_cmd))
 
         # обработка запросов
@@ -61,10 +70,10 @@ class RedmineBot():
                     # показываем что занимается отправкой
                     self.bot.send_message(message.chat.id, Messages.prepare_file.format(res.filename))
                     logging.error("Executing")
-                    res.execute()
+                    result = res.execute()
                     self.bot.send_chat_action(message.chat.id, 'upload_document')
-                    logging.error("File path {0}".format(Paths.tp_filen))
-                    self.bot.send_document(message.chat.id, data=open(Paths.tp_filen, mode="rb"), caption=res.filename)
+                    logging.info("File path {0}".format(result.filename))
+                    self.bot.send_document(message.chat.id, data=open(result.filename , mode="rb"), caption=res.filename)
                 else:
                     self.bot.send_message(message.chat.id, Messages.bad_commad_msg)
             except:
